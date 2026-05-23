@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arbre Généalogique</title>
+  <link rel="stylesheet" href="/styles/main.css" />
+</head>
+<body>
+  <header id="toolbar">
+    <span class="app-title">🌳 Arbre Généalogique</span>
+    <div class="toolbar-actions">
+      <button id="btn-add-person">+ Ajouter une personne</button>
+      <button id="btn-reset-view">Recentrer</button>
+    </div>
+  </header>
+  <main id="app">
+    <div id="cy"></div>
+    <aside id="panel" class="panel--hidden">
+      <h2 id="panel-title">Nouvelle personne</h2>
+      <form id="person-form" autocomplete="off">
+        <label for="input-firstname">Prénom</label>
+        <input type="text" id="input-firstname" placeholder="Marie" required />
+        <label for="input-lastname">Nom</label>
+        <input type="text" id="input-lastname" placeholder="Dupont" />
+        <label for="input-birth">Date de naissance</label>
+        <input type="text" id="input-birth" placeholder="12/03/1942" />
+        <label for="input-death">Date de décès</label>
+        <input type="text" id="input-death" placeholder="—" />
+        <div class="form-actions">
+          <button type="submit" id="btn-save">Enregistrer</button>
+          <button type="button" id="btn-cancel">Annuler</button>
+        </div>
+      </form>
+    </aside>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
