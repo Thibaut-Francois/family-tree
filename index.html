@@ -19,18 +19,27 @@
     <aside id="panel" class="panel--hidden">
       <h2 id="panel-title">Nouvelle personne</h2>
       <form id="person-form" autocomplete="off">
+
         <label for="input-firstname">Prénom</label>
         <input type="text" id="input-firstname" placeholder="Marie" required />
+
         <label for="input-lastname">Nom</label>
         <input type="text" id="input-lastname" placeholder="Dupont" />
+
         <label for="input-birth">Date de naissance</label>
         <input type="text" id="input-birth" placeholder="12/03/1942" />
+
         <label for="input-death">Date de décès</label>
         <input type="text" id="input-death" placeholder="—" />
+
         <div class="form-actions">
           <button type="submit" id="btn-save">Enregistrer</button>
-          <button type="button" id="btn-cancel">Annuler</button>
+          <button type="button" id="btn-link">🔗 Relier</button>
+          <button type="button" id="btn-delete">🗑 Supprimer</button>
         </div>
+
+        <button type="button" id="btn-cancel" style="width:100%; margin-top: 0.25rem; background: var(--color-border); color: var(--color-text);">Annuler</button>
+
       </form>
     </aside>
   </main>
