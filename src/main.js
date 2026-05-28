@@ -1,17 +1,14 @@
 import cytoscape from 'cytoscape'
+import { addPerson, deletePerson, getElements, loadTestData } from './data/store.js'
 
+// ─── Données de test ─────────────────────────────────────────
+loadTestData()
+
+// ─── Initialisation de Cytoscape ─────────────────────────────
 const cy = cytoscape({
   container: document.getElementById('cy'),
-  elements: [
-    { data: { id: 'p1', label: 'Marie Dupont', birth: '1920', death: '1998' } },
-    { data: { id: 'p2', label: 'Jean Dupont', birth: '1918', death: '2001' } },
-    { data: { id: 'p3', label: 'Pierre Dupont', birth: '1945' } },
-    { data: { id: 'p4', label: 'Anne Dupont', birth: '1948' } },
-    { data: { id: 'e1', source: 'p1', target: 'p3' } },
-    { data: { id: 'e2', source: 'p1', target: 'p4' } },
-    { data: { id: 'e3', source: 'p2', target: 'p3' } },
-    { data: { id: 'e4', source: 'p2', target: 'p4' } },
-  ],
+  elements: getElements(),
+
   style: [
     {
       selector: 'node',
@@ -51,37 +48,84 @@ const cy = cytoscape({
       }
     },
   ],
+
   layout: {
     name: 'breadthfirst',
     directed: true,
     spacingFactor: 1.5,
     padding: 40,
   },
+
   userZoomingEnabled: true,
   userPanningEnabled: true,
   boxSelectionEnabled: false,
 })
 
-document.getElementById('btn-reset-view').addEventListener('click', () => cy.fit(undefined, 40))
-document.getElementById('btn-add-person').addEventListener('click', () => openPanel())
-document.getElementById('btn-cancel').addEventListener('click', () => closePanel())
+// ─── Helpers layout ──────────────────────────────────────────
+function runLayout() {
+  cy.layout({
+    name: 'breadthfirst',
+    directed: true,
+    spacingFactor: 1.5,
+    padding: 40,
+  }).run()
+}
 
+// ─── Toolbar ─────────────────────────────────────────────────
+document.getElementById('btn-reset-view').addEventListener('click', () => {
+  cy.fit(undefined, 40)
+})
+
+document.getElementById('btn-add-person').addEventListener('click', () => {
+  openPanel()
+})
+
+document.getElementById('btn-cancel').addEventListener('click', () => {
+  closePanel()
+})
+
+// ─── Formulaire : ajout d'une personne ───────────────────────
 document.getElementById('person-form').addEventListener('submit', (e) => {
   e.preventDefault()
+
   const firstname = document.getElementById('input-firstname').value.trim()
   const lastname  = document.getElementById('input-lastname').value.trim()
   const birth     = document.getElementById('input-birth').value.trim()
   const death     = document.getElementById('input-death').value.trim()
-  const id        = `p_${Date.now()}`
-  const label     = `${firstname} ${lastname}`.trim()
-  cy.add({ data: { id, label, birth, death } })
-  cy.layout({ name: 'breadthfirst', directed: true, spacingFactor: 1.5, padding: 40 }).run()
+
+  // Ajoute dans le store
+  const person = addPerson({ firstname, lastname, birth, death })
+
+  // Ajoute dans Cytoscape
+  cy.add({
+    data: {
+      id:        person.id,
+      label:     `${firstname} ${lastname}`.trim(),
+      firstname,
+      lastname,
+      birth,
+      death,
+    }
+  })
+
+  runLayout()
   closePanel()
 })
 
-function openPanel() {
+// ─── Panneau latéral ─────────────────────────────────────────
+function openPanel(personData = null) {
   document.getElementById('person-form').reset()
-  document.getElementById('panel-title').textContent = 'Nouvelle personne'
+
+  if (personData) {
+    document.getElementById('panel-title').textContent = 'Modifier la personne'
+    document.getElementById('input-firstname').value = personData.firstname ?? ''
+    document.getElementById('input-lastname').value  = personData.lastname  ?? ''
+    document.getElementById('input-birth').value     = personData.birth     ?? ''
+    document.getElementById('input-death').value     = personData.death     ?? ''
+  } else {
+    document.getElementById('panel-title').textContent = 'Nouvelle personne'
+  }
+
   document.getElementById('panel').classList.remove('panel--hidden')
 }
 
