@@ -181,3 +181,32 @@ body {
 #panel-menu.panel--hidden {
   display: none;
 }
+
+/* ─── Barre de sauvegarde ───────────────────────────────────── */
+#save-bar {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+#save-bar button,
+#btn-import-label {
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  font-family: var(--font);
+  border: none;
+  cursor: pointer;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transition: background 0.15s;
+}
+
+#save-bar button:hover,
+#btn-import-label:hover { background: var(--color-border); }
+
+#input-import { display: none; }

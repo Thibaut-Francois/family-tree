@@ -1,9 +1,9 @@
 import cytoscape from 'cytoscape'
-import { addPerson, updatePerson, deletePerson, getPerson, getElements, initRoot } from './data/store.js'
+import { addPerson, updatePerson, deletePerson, getPerson, getElements, initRoot, exportData, importData } from './data/store.js'
 import { initEvents, addChild, addParent, addSpouse, updateNode, removeNode } from './graph/events.js'
 import { runLayout } from './graph/layout.js'
 
-// ─── Nœud de départ ──────────────────────────────────────────
+// ─── Nœud de départ (seulement si pas de données importées) ──
 const root = initRoot()
 
 // ─── Initialisation Cytoscape ────────────────────────────────
@@ -171,6 +171,43 @@ document.getElementById('person-form').addEventListener('submit', (e) => {
   }
 
   closePanel()
+})
+
+// ─── Export JSON ──────────────────────────────────────────────
+document.getElementById('btn-export').addEventListener('click', () => {
+  const data     = exportData()
+  const json     = JSON.stringify(data, null, 2)
+  const blob     = new Blob([json], { type: 'application/json' })
+  const url      = URL.createObjectURL(blob)
+  const a        = document.createElement('a')
+  a.href         = url
+  a.download     = 'arbre-genealogique.json'
+  a.click()
+  URL.revokeObjectURL(url)
+})
+
+// ─── Import JSON ──────────────────────────────────────────────
+document.getElementById('input-import').addEventListener('change', (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result)
+      console.log('données importées :', data)
+      importData(data)
+      console.log('éléments après import :', getElements())
+
+      // Recharge Cytoscape avec les nouvelles données
+      cy.elements().remove()
+      cy.add(getElements())
+      runLayout(cy)
+    } catch {
+      alert('Fichier JSON invalide.')
+    }
+  }
+  reader.readAsText(file)
 })
 
 export { cy }

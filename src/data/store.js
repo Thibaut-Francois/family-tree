@@ -98,3 +98,20 @@ export function initRoot() {
   const root = addPerson({ firstname: 'Ancêtre', lastname: '', birth: '', death: '' })
   return root
 }
+
+// ─── Sauvegarde / Chargement ──────────────────────────────────
+
+export function exportData() {
+  return {
+    persons: [...state.persons.values()],
+    links:   [...state.links.values()],
+  }
+}
+
+export function importData(data) {
+  state.persons.clear()
+  state.links.clear()
+
+  data.persons.forEach(p => state.persons.set(p.id, p))
+  data.links.forEach(l => state.links.set(l.id, l))
+}
