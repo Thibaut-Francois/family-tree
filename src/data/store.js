@@ -1,9 +1,8 @@
 // ─── Store : source de vérité de l'arbre généalogique ────────
 
-// Structure interne
 const state = {
   persons: new Map(), // id → { id, firstname, lastname, birth, death }
-  links:   new Map(), // id → { id, parentId, childId }
+  links:   new Map(), // id → { id, source, target, type: 'parent-child' | 'spouse' }
 }
 
 // ─── Utilitaires ─────────────────────────────────────────────
@@ -31,9 +30,8 @@ export function updatePerson(id, fields) {
 
 export function deletePerson(id) {
   state.persons.delete(id)
-  // Supprime aussi tous les liens qui impliquent cette personne
   for (const [lid, link] of state.links) {
-    if (link.parentId === id || link.childId === id) {
+    if (link.source === id || link.target === id) {
       state.links.delete(lid)
     }
   }
@@ -43,15 +41,19 @@ export function getPerson(id) {
   return state.persons.get(id) ?? null
 }
 
+export function getAllPersons() {
+  return [...state.persons.values()]
+}
+
 // ─── Liens ───────────────────────────────────────────────────
 
-export function addLink(parentId, childId) {
+export function addLink(source, target, type = 'parent-child') {
   // Évite les doublons
   for (const link of state.links.values()) {
-    if (link.parentId === parentId && link.childId === childId) return link
+    if (link.source === source && link.target === target) return link
   }
   const id = `e${uid()}`
-  const link = { id, parentId, childId }
+  const link = { id, source, target, type }
   state.links.set(id, link)
   return link
 }
@@ -60,13 +62,17 @@ export function deleteLink(id) {
   state.links.delete(id)
 }
 
+export function getAllLinks() {
+  return [...state.links.values()]
+}
+
 // ─── Export au format Cytoscape ──────────────────────────────
 
 export function getElements() {
   const nodes = [...state.persons.values()].map(p => ({
     data: {
-      id: p.id,
-      label: `${p.firstname} ${p.lastname}`.trim(),
+      id:        p.id,
+      label:     `${p.firstname} ${p.lastname}`.trim(),
       firstname: p.firstname,
       lastname:  p.lastname,
       birth:     p.birth,
@@ -77,24 +83,18 @@ export function getElements() {
   const edges = [...state.links.values()].map(l => ({
     data: {
       id:     l.id,
-      source: l.parentId,
-      target: l.childId,
+      source: l.source,
+      target: l.target,
+      type:   l.type,
     }
   }))
 
   return [...nodes, ...edges]
 }
 
-// ─── Données de test (à supprimer plus tard) ─────────────────
+// ─── Personne de départ (racine) ─────────────────────────────
 
-export function loadTestData() {
-  const marie  = addPerson({ firstname: 'Marie',  lastname: 'Dupont', birth: '1920', death: '1998' })
-  const jean   = addPerson({ firstname: 'Jean',   lastname: 'Dupont', birth: '1918', death: '2001' })
-  const pierre = addPerson({ firstname: 'Pierre', lastname: 'Dupont', birth: '1945' })
-  const anne   = addPerson({ firstname: 'Anne',   lastname: 'Dupont', birth: '1948' })
-
-  addLink(marie.id,  pierre.id)
-  addLink(marie.id,  anne.id)
-  addLink(jean.id,   pierre.id)
-  addLink(jean.id,   anne.id)
+export function initRoot() {
+  const root = addPerson({ firstname: 'Ancêtre', lastname: '', birth: '', death: '' })
+  return root
 }

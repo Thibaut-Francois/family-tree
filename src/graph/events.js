@@ -1,83 +1,89 @@
 // ─── Gestion des événements sur le graph ─────────────────────
 
-import { updatePerson, deletePerson, addLink, getPerson } from '../data/store.js'
-
-let linkMode = false
-let linkSource = null
+import { addPerson, updatePerson, deletePerson, addLink, getPerson } from '../data/store.js'
+import { runLayout } from './layout.js'
 
 // ─── Initialisation ──────────────────────────────────────────
 
-export function initEvents(cy, { openPanel, closePanel }) {
+export function initEvents(cy, { openPanel, closePanel, openForm }) {
 
   cy.on('tap', (e) => {
     if (e.target === cy) {
-      // Clic sur le fond
       closePanel()
-      if (linkMode) exitLinkMode(cy)
       return
     }
 
-    // Clic sur un nœud
-    const node = e.target
-    if (!node.isNode()) return
+    const el = e.target
+    if (!el.isNode()) return
 
-    if (linkMode) {
-      if (linkSource && linkSource.id() !== node.id()) {
-        const link = addLink(linkSource.id(), node.id())
-        cy.add({ data: { id: link.id, source: link.parentId, target: link.childId } })
-        runLayout(cy)
-      }
-      exitLinkMode(cy)
-      return
-    }
-
-    const person = getPerson(node.id())
+    const person = getPerson(el.id())
     if (person) openPanel(person)
   })
 }
 
-// ─── Mode "relier deux personnes" ────────────────────────────
+// ─── Ajouter un enfant ───────────────────────────────────────
 
-export function startLinkMode(cy, sourceId) {
-  linkMode   = true
-  linkSource = cy.getElementById(sourceId)
+export function addChild(cy, parentId, personData) {
+  const child = addPerson(personData)
+  const link  = addLink(parentId, child.id, 'parent-child')
 
-  cy.nodes().addClass('dim')
-  linkSource.removeClass('dim').addClass('link-source')
+  cy.add([
+    { data: { id: child.id, label: formatLabel(child), ...child } },
+    { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
+  ])
 
-  document.getElementById('cy').style.cursor = 'crosshair'
+  runLayout(cy)
+  return child
 }
 
-function exitLinkMode(cy) {
-  linkMode   = false
-  linkSource = null
-  cy.nodes().removeClass('dim link-source')
-  document.getElementById('cy').style.cursor = 'default'
+// ─── Ajouter un parent ───────────────────────────────────────
+
+export function addParent(cy, childId, personData) {
+  const parent = addPerson(personData)
+  const link   = addLink(parent.id, childId, 'parent-child')
+
+  cy.add([
+    { data: { id: parent.id, label: formatLabel(parent), ...parent } },
+    { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
+  ])
+
+  runLayout(cy)
+  return parent
 }
 
-// ─── Mise à jour d'un nœud dans Cytoscape ────────────────────
+// ─── Ajouter un conjoint ─────────────────────────────────────
+
+export function addSpouse(cy, personId, personData) {
+  const spouse = addPerson(personData)
+  const link   = addLink(personId, spouse.id, 'spouse')
+
+  cy.add([
+    { data: { id: spouse.id, label: formatLabel(spouse), ...spouse } },
+    { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
+  ])
+
+  runLayout(cy)
+  return spouse
+}
+
+// ─── Mettre à jour un nœud ───────────────────────────────────
 
 export function updateNode(cy, id, fields) {
+  const updated = updatePerson(id, fields)
+  if (!updated) return
   const node = cy.getElementById(id)
-  if (!node) return
-  const label = `${fields.firstname ?? ''} ${fields.lastname ?? ''}`.trim()
-  node.data({ ...fields, label })
+  node.data({ ...fields, label: formatLabel(updated) })
 }
 
-// ─── Suppression d'un nœud dans Cytoscape ────────────────────
+// ─── Supprimer un nœud ───────────────────────────────────────
 
 export function removeNode(cy, id) {
   deletePerson(id)
   cy.getElementById(id).remove()
 }
 
-// ─── Layout ──────────────────────────────────────────────────
+// ─── Utilitaire ──────────────────────────────────────────────
 
-export function runLayout(cy) {
-  cy.layout({
-    name: 'breadthfirst',
-    directed: true,
-    spacingFactor: 1.5,
-    padding: 40,
-  }).run()
+function formatLabel(p) {
+  return `${p.firstname} ${p.lastname}`.trim()
 }

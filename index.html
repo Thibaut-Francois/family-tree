@@ -7,42 +7,53 @@
   <link rel="stylesheet" href="/styles/main.css" />
 </head>
 <body>
-  <header id="toolbar">
-    <span class="app-title">🌳 Arbre Généalogique</span>
-    <div class="toolbar-actions">
-      <button id="btn-add-person">+ Ajouter une personne</button>
-      <button id="btn-reset-view">Recentrer</button>
-    </div>
-  </header>
+
   <main id="app">
+
+    <!-- Conteneur du graph Cytoscape -->
     <div id="cy"></div>
+
+    <!-- Panneau latéral -->
     <aside id="panel" class="panel--hidden">
-      <h2 id="panel-title">Nouvelle personne</h2>
-      <form id="person-form" autocomplete="off">
 
-        <label for="input-firstname">Prénom</label>
-        <input type="text" id="input-firstname" placeholder="Marie" required />
-
-        <label for="input-lastname">Nom</label>
-        <input type="text" id="input-lastname" placeholder="Dupont" />
-
-        <label for="input-birth">Date de naissance</label>
-        <input type="text" id="input-birth" placeholder="12/03/1942" />
-
-        <label for="input-death">Date de décès</label>
-        <input type="text" id="input-death" placeholder="—" />
-
-        <div class="form-actions">
-          <button type="submit" id="btn-save">Enregistrer</button>
-          <button type="button" id="btn-link">🔗 Relier</button>
-          <button type="button" id="btn-delete">🗑 Supprimer</button>
+      <!-- Vue menu : actions sur la personne -->
+      <div id="panel-menu">
+        <h2 id="panel-name">Marie Dupont</h2>
+        <p id="panel-dates" class="panel-dates"></p>
+        <div class="menu-actions">
+          <button id="btn-edit">✏️ Modifier</button>
+          <button id="btn-add-parent">⬆️ + Parent</button>
+          <button id="btn-add-child">⬇️ + Enfant</button>
+          <button id="btn-add-spouse">💑 + Conjoint</button>
+          <button id="btn-delete">🗑 Supprimer</button>
         </div>
+      </div>
 
-        <button type="button" id="btn-cancel" style="width:100%; margin-top: 0.25rem; background: var(--color-border); color: var(--color-text);">Annuler</button>
+      <!-- Vue formulaire : créer / éditer -->
+      <div id="panel-form" class="panel--hidden">
+        <button id="btn-back">← Retour</button>
+        <h2 id="form-title">Nouvelle personne</h2>
+        <form id="person-form" autocomplete="off">
+          <label for="input-firstname">Prénom</label>
+          <input type="text" id="input-firstname" placeholder="Marie" required />
 
-      </form>
+          <label for="input-lastname">Nom</label>
+          <input type="text" id="input-lastname" placeholder="Dupont" />
+
+          <label for="input-birth">Date de naissance</label>
+          <input type="text" id="input-birth" placeholder="12/03/1942" />
+
+          <label for="input-death">Date de décès</label>
+          <input type="text" id="input-death" placeholder="—" />
+
+          <button type="submit" id="btn-save">Enregistrer</button>
+        </form>
+      </div>
+
     </aside>
+
   </main>
+
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
