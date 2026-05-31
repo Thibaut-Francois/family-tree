@@ -69,26 +69,40 @@ export function getAllLinks() {
 // ─── Export au format Cytoscape ──────────────────────────────
 
 export function getElements() {
-  const nodes = [...state.persons.values()].map(p => {
-    const name  = `${p.firstname} ${p.lastname}`.trim()
-const birth = p.birth ? `${p.birth}` : ''
-const death = p.death ? `${p.death}` : ''
-const dates = [birth, death].filter(Boolean).join(' - ')
-const displayLabel = dates ? `${name}\n${dates}` : name
+  const nodes = [...state.persons.values()]
+    .filter(p => !p.isMidpoint)
+    .map(p => {
+      const name  = `${p.firstname} ${p.lastname}`.trim()
+      const birth = p.birth ? `${p.birth}` : ''
+      const death = p.death ? `${p.death}` : ''
+      const dates = [birth, death].filter(Boolean).join(' - ')
+      const displayLabel = dates ? `${name}\n${dates}` : name
 
-    return {
-      data: {
-        id: p.id,
-        label:        displayLabel,
-        displayLabel: displayLabel,
-        firstname:    p.firstname,
-        lastname:     p.lastname,
-        birth:        p.birth,
-        death:        p.death,
-        isSpouse:     p.isSpouse,
+      return {
+        data: {
+          id:           p.id,
+          label:        displayLabel,
+          displayLabel: displayLabel,
+          firstname:    p.firstname,
+          lastname:     p.lastname,
+          birth:        p.birth,
+          death:        p.death,
+          isSpouse:     p.isSpouse,
+        }
       }
-    }
-  })
+    })
+
+  const midpoints = [...state.persons.values()]
+    .filter(p => p.isMidpoint)
+    .map(p => ({
+      data: {
+        id:          p.id,
+        isMidpoint:  true,
+        personAId:   p.personAId,
+        personBId:   p.personBId,
+        label:       '',
+      }
+    }))
 
   const edges = [...state.links.values()].map(l => ({
     data: {
@@ -99,13 +113,13 @@ const displayLabel = dates ? `${name}\n${dates}` : name
     }
   }))
 
-  return [...nodes, ...edges]
+  return [...nodes, ...midpoints, ...edges]
 }
 
 // ─── Personne de départ (racine) ─────────────────────────────
 
 export function initRoot() {
-  const root = addPerson({ firstname: 'Ancêtre', lastname: '', birth: '', death: '' })
+  const root = addPerson({ firstname: 'Ancêtre', lastname: '', birth: '01/01/2000', death: '01/01/2000' })
   return root
 }
 
@@ -124,4 +138,28 @@ export function importData(data) {
 
   data.persons.forEach(p => state.persons.set(p.id, p))
   data.links.forEach(l => state.links.set(l.id, l))
+}
+
+// ─── Nœuds invisibles (points médians conjoint) ───────────────
+
+export function addMidpoint(personAId, personBId) {
+  const id = `m${uid()}`
+  const midpoint = { id, personAId, personBId, isMidpoint: true }
+  state.persons.set(id, midpoint)
+  return midpoint
+}
+
+export function getMidpoint(personAId, personBId) {
+  for (const p of state.persons.values()) {
+    if (!p.isMidpoint) continue
+    if (
+      (p.personAId === personAId && p.personBId === personBId) ||
+      (p.personAId === personBId && p.personBId === personAId)
+    ) return p
+  }
+  return null
+}
+
+export function getAllMidpoints() {
+  return [...state.persons.values()].filter(p => p.isMidpoint)
 }

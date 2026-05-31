@@ -5,11 +5,11 @@ const V_SPACING   = 140
 
 export function runLayout(cy) {
   const positions = computePositions(cy)
-  cy.nodes().forEach(node => {
+  cy.nodes().filter(n => !n.data('isMidpoint')).forEach(node => {
     const pos = positions[node.id()]
     if (pos) node.position(pos)
   })
-  // ─── Layout initial ───────────────────────────────────────────
+  placeMidpoints(cy)
   if (cy.nodes().length > 1) {
     cy.fit(undefined, 100)
   } else {
@@ -18,23 +18,51 @@ export function runLayout(cy) {
   }
 }
 
+function placeMidpoints(cy) {
+  cy.nodes('[isMidpoint]').forEach(mid => {
+    const personAId = mid.data('personAId')
+    const personBId = mid.data('personBId')
+    const posA = cy.getElementById(personAId).position()
+    const posB = cy.getElementById(personBId).position()
+    if (posA && posB) {
+      mid.position({
+        x: (posA.x + posB.x) / 2,
+        y: (posA.y + posB.y) / 2,
+      })
+    }
+  })
+}
+
 function computePositions(cy) {
 
-  // ─── 1. Maps de relations ─────────────────────────────────────
-  const parentOf   = new Map()
+const parentOf   = new Map()
   const childrenOf = new Map()
   const spousesOf  = new Map()
 
   cy.edges('[type="parent-child"]').forEach(e => {
     const src = e.source().id()
     const tgt = e.target().id()
-    if (!parentOf.has(tgt))   parentOf.set(tgt, [])
-    if (!childrenOf.has(src)) childrenOf.set(src, [])
-    parentOf.get(tgt).push(src)
-    childrenOf.get(src).push(tgt)
+
+    const srcNode = cy.getElementById(src)
+    if (srcNode.data('isMidpoint')) {
+      const personAId = srcNode.data('personAId')
+      const personBId = srcNode.data('personBId')
+      if (!parentOf.has(tgt)) parentOf.set(tgt, [])
+      if (!childrenOf.has(personAId)) childrenOf.set(personAId, [])
+      if (!childrenOf.has(personBId)) childrenOf.set(personBId, [])
+      parentOf.get(tgt).push(personAId)
+      parentOf.get(tgt).push(personBId)
+      childrenOf.get(personAId).push(tgt)
+      childrenOf.get(personBId).push(tgt)
+    } else {
+      if (!parentOf.has(tgt))   parentOf.set(tgt, [])
+      if (!childrenOf.has(src)) childrenOf.set(src, [])
+      parentOf.get(tgt).push(src)
+      childrenOf.get(src).push(tgt)
+    }
   })
 
-  cy.edges('[type="spouse"]').forEach(e => {
+  cy.edges('[type="spouse-logical"]').forEach(e => {
     const src = e.source().id()
     const tgt = e.target().id()
     if (!spousesOf.has(src)) spousesOf.set(src, [])
@@ -43,12 +71,10 @@ function computePositions(cy) {
     spousesOf.get(tgt).push(src)
   })
 
-  // ─── 2. Générations via BFS vers le bas ──────────────────────
   const generation = {}
   const hasParent  = new Set(parentOf.keys())
 
-  // Racines = pas de parent ET pas conjoint d'un enfant
-  cy.nodes().forEach(node => {
+  cy.nodes().filter(n => !n.data('isMidpoint')).forEach(node => {
     const id = node.id()
     if (hasParent.has(id)) return
     const isSpouseOfChild = (spousesOf.get(id) || []).some(sid => hasParent.has(sid))
@@ -63,7 +89,6 @@ function computePositions(cy) {
     const id  = queue.shift()
     const gen = generation[id]
 
-    // Conjoints → même génération
     ;(spousesOf.get(id) || []).forEach(sid => {
       if (generation[sid] === undefined) {
         generation[sid] = gen
@@ -71,7 +96,6 @@ function computePositions(cy) {
       }
     })
 
-    // Enfants → gen + 1
     ;(childrenOf.get(id) || []).forEach(cid => {
       if (generation[cid] === undefined) {
         generation[cid] = gen + 1
@@ -80,8 +104,7 @@ function computePositions(cy) {
     })
   }
 
-  // ─── 3. Parents ajoutés manuellement (gen négative) ──────────
-  cy.nodes().forEach(node => {
+  cy.nodes().filter(n => !n.data('isMidpoint')).forEach(node => {
     const id = node.id()
     if (generation[id] !== undefined) return
     const children  = childrenOf.get(id) || []
@@ -89,20 +112,17 @@ function computePositions(cy) {
     generation[id]  = childGens.length > 0 ? Math.min(...childGens) - 1 : 0
   })
 
-  // ─── 4. Correction : conjoints forcés à la gen de leur partenaire ──
   let changed = true
   while (changed) {
     changed = false
-    cy.edges('[type="spouse"]').forEach(e => {
+    cy.edges('[type="spouse-logical"]').forEach(e => {
       const srcId  = e.source().id()
       const tgtId  = e.target().id()
       const srcGen = generation[srcId]
       const tgtGen = generation[tgtId]
       if (srcGen === tgtGen) return
-
       const srcHasChildren = (childrenOf.get(srcId) || []).length > 0
       const tgtHasChildren = (childrenOf.get(tgtId) || []).length > 0
-
       if (srcHasChildren && !tgtHasChildren) {
         generation[tgtId] = srcGen
       } else if (tgtHasChildren && !srcHasChildren) {
@@ -116,9 +136,8 @@ function computePositions(cy) {
     })
   }
 
-  // ─── 5. Grouper et ordonner par génération ───────────────────
   const byGen = {}
-  cy.nodes().forEach(node => {
+  cy.nodes().filter(n => !n.data('isMidpoint')).forEach(node => {
     const g = generation[node.id()] ?? 0
     if (!byGen[g]) byGen[g] = []
     byGen[g].push(node.id())
@@ -128,7 +147,6 @@ function computePositions(cy) {
     const ids     = byGen[g]
     const ordered = []
     const placed  = new Set()
-
     const anchors = ids.filter(id => (parentOf.get(id) || []).length > 0)
     const rest    = ids.filter(id => !anchors.includes(id))
 
@@ -143,11 +161,9 @@ function computePositions(cy) {
         }
       })
     })
-
     byGen[g] = ordered
   })
 
-  // ─── 6. Positions X/Y ────────────────────────────────────────
   const positions = {}
   const gens = Object.keys(byGen).map(Number).sort((a, b) => a - b)
 
@@ -166,7 +182,31 @@ function computePositions(cy) {
 
   // ─── 7. Ajuster X des enfants sous leurs parents ─────────────
   gens.forEach(g => {
-    byGen[g].forEach(id => {
+    const ids = byGen[g]
+
+    // Trier les enfants par X de leur parent
+    ids.sort((a, b) => {
+      const parentsA = parentOf.get(a) || []
+      const parentsB = parentOf.get(b) || []
+      const xA = parentsA.length
+        ? parentsA.reduce((sum, pid) => sum + (positions[pid]?.x ?? 0), 0) / parentsA.length
+        : positions[a]?.x ?? 0
+      const xB = parentsB.length
+        ? parentsB.reduce((sum, pid) => sum + (positions[pid]?.x ?? 0), 0) / parentsB.length
+        : positions[b]?.x ?? 0
+      return xA - xB
+    })
+
+    // Recalculer les positions X après le tri
+    const total  = ids.length
+    const totalW = total * NODE_WIDTH + (total - 1) * H_SPACING
+    const startX = -totalW / 2 + NODE_WIDTH / 2
+    ids.forEach((id, i) => {
+      positions[id].x = startX + i * (NODE_WIDTH + H_SPACING)
+    })
+
+    // Ajuster chaque enfant sous ses parents
+    ids.forEach(id => {
       const parents = parentOf.get(id) || []
       if (parents.length === 0) return
       const parentXs = parents.map(pid => positions[pid]?.x ?? 0)
@@ -177,7 +217,13 @@ function computePositions(cy) {
         if (positions[sid]) positions[sid].x += delta
       })
     })
-    resolveOverlaps(byGen[g], positions)
+
+    resolveOverlaps(ids, positions)
+
+    // Recentrer après résolution
+    const xs      = ids.map(id => positions[id].x)
+    const centerX = (Math.min(...xs) + Math.max(...xs)) / 2
+    ids.forEach(id => { positions[id].x -= centerX })
   })
 
   return positions

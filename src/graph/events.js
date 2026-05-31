@@ -1,6 +1,6 @@
 // ─── Gestion des événements sur le graph ─────────────────────
 
-import { addPerson, updatePerson, deletePerson, addLink, getPerson } from '../data/store.js'
+import { addPerson, updatePerson, deletePerson, addLink, getPerson, addMidpoint, getMidpoint } from '../data/store.js'
 import { runLayout } from './layout.js'
 
 // ─── Initialisation ──────────────────────────────────────────
@@ -23,14 +23,32 @@ export function initEvents(cy, { openPanel, closePanel, openForm }) {
 
 // ─── Ajouter un enfant ───────────────────────────────────────
 
-export function addChild(cy, parentId, personData) {
+export function addChild(cy, parentId, personData, otherParentId = null) {
   const child = addPerson(personData)
-  const link  = addLink(parentId, child.id, 'parent-child')
+
+  let sourceId = parentId
+
+  if (otherParentId) {
+    console.log('cherche midpoint entre', parentId, 'et', otherParentId)
+    console.log('midpoints disponibles:', cy.nodes('[isMidpoint]').map(n => ({
+      id: n.id(),
+      a: n.data('personAId'),
+      b: n.data('personBId')
+    })))
+
+    const midNode = cy.nodes('[isMidpoint]').filter(n =>
+      (n.data('personAId') === parentId && n.data('personBId') === otherParentId) ||
+      (n.data('personAId') === otherParentId && n.data('personBId') === parentId)
+    ).first()
+    if (midNode.length) sourceId = midNode.id()
+  }
+
+  const link = addLink(sourceId, child.id, 'parent-child')
 
   cy.add([
-  { data: { ...child, id: child.id, label: formatLabel(child), displayLabel: formatLabel(child) } },
-  { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
-])
+    { data: { ...child, id: child.id, label: formatLabel(child), displayLabel: formatLabel(child) } },
+    { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
+  ])
 
   runLayout(cy)
   return child
@@ -54,13 +72,22 @@ export function addParent(cy, childId, personData) {
 // ─── Ajouter un conjoint ─────────────────────────────────────
 
 export function addSpouse(cy, personId, personData) {
-  const spouse = addPerson({ ...personData, isSpouse: true })
-  const link   = addLink(personId, spouse.id, 'spouse')
+  const spouse   = addPerson({ ...personData, isSpouse: true })
+  const midpoint = addMidpoint(personId, spouse.id)
+  
+  // Lien spouse remplacé par deux liens via le midpoint
+  const linkA = addLink(personId,   midpoint.id, 'spouse')
+  const linkB = addLink(midpoint.id, spouse.id,  'spouse')
+  // Lien logique pour retrouver la relation (pas affiché)
+  const linkSpouse = addLink(personId, spouse.id, 'spouse-logical')
 
   cy.add([
-  { data: { ...spouse, id: spouse.id, label: formatLabel(spouse), displayLabel: formatLabel(spouse) } },
-  { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
-])
+    { data: { ...spouse, id: spouse.id, label: formatLabel(spouse), displayLabel: formatLabel(spouse) } },
+    { data: { id: midpoint.id, isMidpoint: true, personAId: personId, personBId: spouse.id, label: '' } },
+    { data: { id: linkA.id, source: linkA.source, target: linkA.target, type: linkA.type } },
+    { data: { id: linkB.id, source: linkB.source, target: linkB.target, type: linkB.type } },
+    { data: { id: linkSpouse.id, source: linkSpouse.source, target: linkSpouse.target, type: linkSpouse.type } },
+  ])
 
   runLayout(cy)
   return spouse

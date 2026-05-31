@@ -62,6 +62,35 @@ const cy = cytoscape({
         'target-arrow-shape': 'none',
       }
     },
+    {
+  selector: 'node[isMidpoint]',
+  style: {
+    'width': 1,
+    'height': 1,
+    'background-color': '#a0b8a8',
+    'border-width': 0,
+    'label': '',
+    'opacity': 0,
+    'events': 'no',
+  }
+},
+    {
+      selector: 'edge[type="spouse"]',
+      style: {
+        'width': 2,
+        'line-color': '#b8a0b0',
+        'line-style': 'solid',
+        'curve-style': 'straight',
+        'target-arrow-shape': 'none',
+        'source-arrow-shape': 'none',
+      }
+    },
+    {
+      selector: 'edge[type="spouse-logical"]',
+      style: {
+        'display': 'none',
+      }
+    },
   ],
 
   layout: { name: 'preset' },
@@ -82,7 +111,7 @@ let pendingAction   = null // 'edit' | 'add-child' | 'add-parent' | 'add-spouse'
 function openMenu(person) {
   currentPersonId = person.id
   document.getElementById('panel-name').textContent = `${person.firstname} ${person.lastname}`.trim() || 'Sans nom'
-  const dates = [person.birth, person.death].filter(Boolean).join(' — ')
+  const dates = [person.birth, person.death].filter(Boolean).join(' - ')
   document.getElementById('panel-dates').textContent = dates
 
   // Vérifie si ce nœud est un conjoint
@@ -139,26 +168,24 @@ document.getElementById('btn-add-parent').addEventListener('click', () => {
 document.getElementById('btn-add-child').addEventListener('click', () => {
   pendingAction = 'add-child'
 
-  // Cherche les conjoints de la personne courante
-  const spouses = cy.edges('[type="spouse"]')
-    .filter(e => e.source().id() === currentPersonId || e.target().id() === currentPersonId)
-    .map(e => {
-      const otherId = e.source().id() === currentPersonId ? e.target().id() : e.source().id()
-      return getPerson(otherId)
-    })
-    .filter(Boolean)
-
-  // Affiche ou cache le select selon s'il y a des conjoints
   const group  = document.getElementById('other-parent-group')
   const select = document.getElementById('select-other-parent')
 
-  if (spouses.length > 0) {
-    // Peuple le select
-    select.innerHTML = '<option value="">Aucun</option>'
-    spouses.forEach(s => {
-      const opt   = document.createElement('option')
-      opt.value   = s.id
-      opt.textContent = `${s.firstname} ${s.lastname}`.trim()
+  // Cherche les conjoints via les liens spouse-logical
+  const spouseEdges = cy.edges('[type="spouse-logical"]').filter(e =>
+    e.source().id() === currentPersonId || e.target().id() === currentPersonId
+  )
+
+  select.innerHTML = '<option value="">Aucun</option>'
+
+  if (spouseEdges.length > 0) {
+    spouseEdges.forEach(e => {
+      const otherId = e.source().id() === currentPersonId ? e.target().id() : e.source().id()
+      const other   = getPerson(otherId)
+      if (!other) return
+      const opt = document.createElement('option')
+      opt.value = otherId
+      opt.textContent = `${other.firstname ?? ''} ${other.lastname ?? ''}`.trim() || 'Sans nom'
       select.appendChild(opt)
     })
     group.style.display = 'block'
@@ -168,7 +195,6 @@ document.getElementById('btn-add-child').addEventListener('click', () => {
 
   openForm('+ Enfant')
 })
-
 document.getElementById('btn-add-spouse').addEventListener('click', () => {
   pendingAction = 'add-spouse'
   openForm('+ Conjoint')
@@ -200,16 +226,8 @@ document.getElementById('person-form').addEventListener('submit', (e) => {
     updateNode(cy, currentPersonId, data)
 
   } else if (pendingAction === 'add-child') {
-    const child = addChild(cy, currentPersonId, data)
-
-    // Si un deuxième parent est sélectionné, ajoute le lien
-    const otherParentId = document.getElementById('select-other-parent').value
-    if (otherParentId) {
-      const link = addLink(otherParentId, child.id, 'parent-child')
-      cy.add({ data: { id: link.id, source: link.source, target: link.target, type: link.type } })
-    }
-
-    runLayout(cy)
+    const otherParentId = document.getElementById('select-other-parent').value || null
+    addChild(cy, currentPersonId, data, otherParentId)
 
   } else if (pendingAction === 'add-parent') {
     addParent(cy, currentPersonId, data)
