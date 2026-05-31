@@ -34,6 +34,14 @@
         <button id="btn-back">← Retour</button>
         <h2 id="form-title">Nouvelle personne</h2>
         <form id="person-form" autocomplete="off">
+
+          <div id="other-parent-group" style="display:none">
+            <label for="select-other-parent">Autre parent</label>
+            <select id="select-other-parent">
+              <option value="">Aucun</option>
+            </select>
+          </div>
+
           <label for="input-firstname">Prénom</label>
           <input type="text" id="input-firstname" placeholder="Marie" required />
 

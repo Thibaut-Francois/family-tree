@@ -54,7 +54,7 @@ export function addParent(cy, childId, personData) {
 // ─── Ajouter un conjoint ─────────────────────────────────────
 
 export function addSpouse(cy, personId, personData) {
-  const spouse = addPerson(personData)
+  const spouse = addPerson({ ...personData, isSpouse: true })
   const link   = addLink(personId, spouse.id, 'spouse')
 
   cy.add([

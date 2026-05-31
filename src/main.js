@@ -1,5 +1,5 @@
 import cytoscape from 'cytoscape'
-import { addPerson, updatePerson, deletePerson, getPerson, getElements, initRoot, exportData, importData } from './data/store.js'
+import { addPerson, updatePerson, deletePerson, getPerson, getElements, initRoot, exportData, importData, addLink } from './data/store.js'
 import { initEvents, addChild, addParent, addSpouse, updateNode, removeNode } from './graph/events.js'
 import { runLayout } from './graph/layout.js'
 
@@ -79,11 +79,21 @@ let pendingAction   = null // 'edit' | 'add-child' | 'add-parent' | 'add-spouse'
 
 // ─── Fonctions panneau ────────────────────────────────────────
 function openMenu(person) {
-  console.log('openMenu appelé pour', person.firstname)
   currentPersonId = person.id
   document.getElementById('panel-name').textContent = `${person.firstname} ${person.lastname}`.trim() || 'Sans nom'
   const dates = [person.birth, person.death].filter(Boolean).join(' — ')
   document.getElementById('panel-dates').textContent = dates
+
+  // Vérifie si ce nœud est un conjoint
+// Un nœud est "conjoint" s'il a un lien spouse ET aucun enfant direct
+const isSpouse = !!getPerson(person.id)?.isSpouse
+
+  document.getElementById('btn-add-parent').style.display = isSpouse ? 'none' : 'block'
+  document.getElementById('btn-add-spouse').style.display = isSpouse ? 'none' : 'block'
+  
+  // Cache "+ Parent" et "+ Conjoint" pour les conjoints
+  document.getElementById('btn-add-parent').style.display = isSpouse ? 'none' : 'block'
+  document.getElementById('btn-add-spouse').style.display = isSpouse ? 'none' : 'block'
 
   document.getElementById('panel-menu').classList.remove('panel--hidden')
   document.getElementById('panel-form').classList.add('panel--hidden')
@@ -127,6 +137,34 @@ document.getElementById('btn-add-parent').addEventListener('click', () => {
 
 document.getElementById('btn-add-child').addEventListener('click', () => {
   pendingAction = 'add-child'
+
+  // Cherche les conjoints de la personne courante
+  const spouses = cy.edges('[type="spouse"]')
+    .filter(e => e.source().id() === currentPersonId || e.target().id() === currentPersonId)
+    .map(e => {
+      const otherId = e.source().id() === currentPersonId ? e.target().id() : e.source().id()
+      return getPerson(otherId)
+    })
+    .filter(Boolean)
+
+  // Affiche ou cache le select selon s'il y a des conjoints
+  const group  = document.getElementById('other-parent-group')
+  const select = document.getElementById('select-other-parent')
+
+  if (spouses.length > 0) {
+    // Peuple le select
+    select.innerHTML = '<option value="">Aucun</option>'
+    spouses.forEach(s => {
+      const opt   = document.createElement('option')
+      opt.value   = s.id
+      opt.textContent = `${s.firstname} ${s.lastname}`.trim()
+      select.appendChild(opt)
+    })
+    group.style.display = 'block'
+  } else {
+    group.style.display = 'none'
+  }
+
   openForm('+ Enfant')
 })
 
@@ -161,7 +199,16 @@ document.getElementById('person-form').addEventListener('submit', (e) => {
     updateNode(cy, currentPersonId, data)
 
   } else if (pendingAction === 'add-child') {
-    addChild(cy, currentPersonId, data)
+    const child = addChild(cy, currentPersonId, data)
+
+    // Si un deuxième parent est sélectionné, ajoute le lien
+    const otherParentId = document.getElementById('select-other-parent').value
+    if (otherParentId) {
+      const link = addLink(otherParentId, child.id, 'parent-child')
+      cy.add({ data: { id: link.id, source: link.source, target: link.target, type: link.type } })
+    }
+
+    runLayout(cy)
 
   } else if (pendingAction === 'add-parent') {
     addParent(cy, currentPersonId, data)

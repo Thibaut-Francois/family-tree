@@ -13,9 +13,9 @@ function uid() {
 
 // ─── Personnes ───────────────────────────────────────────────
 
-export function addPerson({ firstname, lastname = '', birth = '', death = '' }) {
+export function addPerson({ firstname, lastname = '', birth = '', death = '', isSpouse = false }) {
   const id = `p${uid()}`
-  const person = { id, firstname, lastname, birth, death }
+  const person = { id, firstname, lastname, birth, death, isSpouse }
   state.persons.set(id, person)
   return person
 }
