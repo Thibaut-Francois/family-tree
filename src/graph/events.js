@@ -28,9 +28,9 @@ export function addChild(cy, parentId, personData) {
   const link  = addLink(parentId, child.id, 'parent-child')
 
   cy.add([
-    { data: { id: child.id, label: formatLabel(child), ...child } },
-    { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
-  ])
+  { data: { ...child, id: child.id, label: formatLabel(child), displayLabel: formatLabel(child) } },
+  { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
+])
 
   runLayout(cy)
   return child
@@ -43,9 +43,9 @@ export function addParent(cy, childId, personData) {
   const link   = addLink(parent.id, childId, 'parent-child')
 
   cy.add([
-    { data: { id: parent.id, label: formatLabel(parent), ...parent } },
-    { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
-  ])
+  { data: { ...parent, id: parent.id, label: formatLabel(parent), displayLabel: formatLabel(parent) } },
+  { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
+])
 
   runLayout(cy)
   return parent
@@ -58,9 +58,9 @@ export function addSpouse(cy, personId, personData) {
   const link   = addLink(personId, spouse.id, 'spouse')
 
   cy.add([
-    { data: { id: spouse.id, label: formatLabel(spouse), ...spouse } },
-    { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
-  ])
+  { data: { ...spouse, id: spouse.id, label: formatLabel(spouse), displayLabel: formatLabel(spouse) } },
+  { data: { id: link.id, source: link.source, target: link.target, type: link.type } },
+])
 
   runLayout(cy)
   return spouse
@@ -85,5 +85,9 @@ export function removeNode(cy, id) {
 // ─── Utilitaire ──────────────────────────────────────────────
 
 function formatLabel(p) {
-  return `${p.firstname} ${p.lastname}`.trim()
+  const name  = `${p.firstname} ${p.lastname}`.trim()
+  const birth = p.birth ? `${p.birth}` : ''
+  const death = p.death ? `${p.death}` : ''
+  const dates = [birth, death].filter(Boolean).join(' - ')
+  return dates ? `${name}\n${dates}` : name
 }

@@ -9,7 +9,13 @@ export function runLayout(cy) {
     const pos = positions[node.id()]
     if (pos) node.position(pos)
   })
-  cy.fit(undefined, 100)
+  // ─── Layout initial ───────────────────────────────────────────
+  if (cy.nodes().length > 1) {
+    cy.fit(undefined, 100)
+  } else {
+    cy.zoom(2)
+    cy.center()
+  }
 }
 
 function computePositions(cy) {

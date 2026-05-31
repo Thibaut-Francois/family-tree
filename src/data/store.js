@@ -69,16 +69,26 @@ export function getAllLinks() {
 // ─── Export au format Cytoscape ──────────────────────────────
 
 export function getElements() {
-  const nodes = [...state.persons.values()].map(p => ({
-    data: {
-      id:        p.id,
-      label:     `${p.firstname} ${p.lastname}`.trim(),
-      firstname: p.firstname,
-      lastname:  p.lastname,
-      birth:     p.birth,
-      death:     p.death,
+  const nodes = [...state.persons.values()].map(p => {
+    const name  = `${p.firstname} ${p.lastname}`.trim()
+const birth = p.birth ? `${p.birth}` : ''
+const death = p.death ? `${p.death}` : ''
+const dates = [birth, death].filter(Boolean).join(' - ')
+const displayLabel = dates ? `${name}\n${dates}` : name
+
+    return {
+      data: {
+        id: p.id,
+        label:        displayLabel,
+        displayLabel: displayLabel,
+        firstname:    p.firstname,
+        lastname:     p.lastname,
+        birth:        p.birth,
+        death:        p.death,
+        isSpouse:     p.isSpouse,
+      }
     }
-  }))
+  })
 
   const edges = [...state.links.values()].map(l => ({
     data: {

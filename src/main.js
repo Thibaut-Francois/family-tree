@@ -13,24 +13,25 @@ const cy = cytoscape({
 
   style: [
     {
-      selector: 'node',
-      style: {
-        'shape': 'round-rectangle',
-        'width': 140,
-        'height': 60,
-        'background-color': '#ffffff',
-        'border-width': 2,
-        'border-color': '#4a7c59',
-        'label': 'data(label)',
-        'text-valign': 'center',
-        'text-halign': 'center',
-        'font-size': '12px',
-        'font-family': 'system-ui, sans-serif',
-        'color': '#2c2c2c',
-        'text-wrap': 'wrap',
-        'text-max-width': '120px',
-      }
-    },
+  selector: 'node',
+  style: {
+    'shape': 'round-rectangle',
+    'width': 160,
+    'height': 75,
+    'background-color': '#ffffff',
+    'border-width': 2,
+    'border-color': '#4a7c59',
+    'label': 'data(label)',
+    'text-valign': 'center',
+    'text-halign': 'center',
+    'font-size': '11px',
+    'font-family': 'system-ui, sans-serif',
+    'color': '#2c2c2c',
+    'text-wrap': 'wrap',
+    'text-max-width': '140px',
+    'line-height': 1.6,
+  }
+},
     {
       selector: 'node:selected',
       style: {
@@ -90,7 +91,7 @@ const isSpouse = !!getPerson(person.id)?.isSpouse
 
   document.getElementById('btn-add-parent').style.display = isSpouse ? 'none' : 'block'
   document.getElementById('btn-add-spouse').style.display = isSpouse ? 'none' : 'block'
-  
+
   // Cache "+ Parent" et "+ Conjoint" pour les conjoints
   document.getElementById('btn-add-parent').style.display = isSpouse ? 'none' : 'block'
   document.getElementById('btn-add-spouse').style.display = isSpouse ? 'none' : 'block'
